@@ -93,12 +93,37 @@ final class ScalewayClient
                 throw new AuthenticationException(sprintf('Scaleway authentication failed (HTTP %d)', $statusCode));
             }
 
+            $headers = $response->getHeaders(false);
             $content = $response->getContent(false);
         } catch (TransportExceptionInterface $e) {
             throw new TransportException($e->getMessage(), 0, $e);
         }
 
-        return ApiResponse::fromHttp($statusCode, $this->decode($content));
+        return ApiResponse::fromHttp($statusCode, $this->decode($content), $headers);
+    }
+
+    public function paginate(string $path, array $query = [], ?string $itemsKey = null, int $perPage = 50, string $perPageParam = 'page_size'): \Generator
+    {
+        $page = 1;
+
+        while (true) {
+            $response = $this->get($path, array_merge($query, [
+                'page' => $page,
+                $perPageParam => $perPage,
+            ]))->ensureSuccess();
+
+            $items = $response->items($itemsKey);
+
+            foreach ($items as $item) {
+                yield $item;
+            }
+
+            if (\count($items) < $perPage) {
+                return;
+            }
+
+            ++$page;
+        }
     }
 
     private function decode(string $content): mixed

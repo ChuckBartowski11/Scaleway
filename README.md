@@ -1,8 +1,32 @@
-# Scaleway SDK for PHP
+<div align="center">
 
-A modern, fully typed PHP SDK for the **Scaleway API** — 35 product modules covering compute (Instances, Elastic Metal, Apple Silicon, Scaling Groups), storage (Block, File), network (VPC, Public Gateways, IPAM, Load Balancers, Flexible IPs, Edge Services), databases (PostgreSQL/MySQL, Redis, MongoDB, Serverless SQL), Kubernetes, serverless (Containers, Functions, Jobs), messaging (NATS, Queues, Topics), hosting services (Web Hosting, Transactional Email, DNS & Domains), security (Secret Manager, Key Manager, IAM), AI (Managed Inference), observability (Cockpit, Audit Trail), IoT Hub, Marketplace, Account, and Billing.
+# ☁️ Scaleway SDK for PHP
 
-Framework-agnostic core — usable from any PHP project, script, or worker — with an optional bundle for first-class Symfony integration. Authenticated with IAM secret keys, zone/region aware, typed exceptions, and a comment-free, strictly typed codebase (PHP 8.2+, `declare(strict_types=1)` everywhere).
+**A modern, fully typed PHP SDK for the entire Scaleway API — 35 product modules, one elegant facade.**
+
+[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D%208.2-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Symfony](https://img.shields.io/badge/Symfony-6.4%20%7C%207.x-000000?logo=symfony&logoColor=white)](https://symfony.com/)
+[![Tests](https://img.shields.io/badge/tests-47%20passing-brightgreen?logo=github)](tests/)
+[![Coverage](https://img.shields.io/badge/products-35%20modules-blue)](#api-reference)
+[![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
+
+*Instances · Elastic Metal · Kubernetes · Serverless · Databases · DNS · Load Balancers · Secret Manager · and everything in between*
+
+[Installation](#installation) · [Quick Start](#quick-start-plain-php) · [API Reference](#api-reference) · [Error Handling](#error-handling)
+
+</div>
+
+---
+
+```php
+$scaleway = new Scaleway(new ScalewayClient(secretKey: getenv('SCW_SECRET_KEY')));
+
+$server = $scaleway->instances()->createServer('web01', 'DEV1-S', 'ubuntu_jammy');
+$scaleway->instances()->powerOn($server->data('server')['id']);
+$scaleway->dns()->addRecord('example.com', 'www', 'A', '203.0.113.10');
+```
+
+Framework-agnostic core — usable from any PHP project, script, or worker — with an optional bundle for first-class Symfony integration. Authenticated with IAM secret keys, zone/region aware, typed exceptions, automatic pagination, and a comment-free, strictly typed codebase (PHP 8.2+, `declare(strict_types=1)` everywhere).
 
 ---
 
@@ -44,15 +68,16 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 
 ## Features
 
-- **Thirty-five product modules** behind one facade, covering the `api.scaleway.com` surface — every module's product slug and version verified against the official API documentation.
-- **Zone/region aware**: configure `default_zone` and `default_region` once; every method accepts an optional per-call override, and the SDK builds the correct `/zones/{zone}/` or `/regions/{region}/` path for each product.
-- **Project injection**: set `default_project_id` once and creation calls fill `project` / `project_id` automatically (explicit values always win).
-- **Framework-agnostic**: one plain facade (`Scaleway`) you can instantiate anywhere; the only hard dependency is `symfony/http-client`, a standalone component that works in any PHP project.
-- **A single normalized response object** (`ApiResponse`) that surfaces Scaleway's `message`/`type` errors and flattens field-level `details` into readable strings.
-- **Typed exception hierarchy** under one marker interface, so you can catch narrowly or broadly.
-- **Nothing is sealed off**: the client's `get`/`post`/`put`/`patch`/`delete` accept any path, so a product or endpoint not wrapped by a module is one call away.
-- **Optional Symfony bundle** with semantic configuration and autowirable services.
-- **Fully unit-tested** against `MockHttpClient` (no network required).
+| | |
+|---|---|
+| 🧩 **35 product modules** | One facade covering the whole `api.scaleway.com` surface — every slug and version verified against the official API documentation |
+| 🌍 **Zone/region aware** | Configure `default_zone` / `default_region` once; every method accepts a per-call override and the SDK builds the right `/zones/…` or `/regions/…` path |
+| 🎯 **Project injection** | Set `default_project_id` once and creation calls fill `project` / `project_id` automatically (explicit values always win) |
+| 📦 **Smart responses** | `items()` auto-detects Scaleway's per-product envelope keys, `totalCount()` reads body or `X-Total-Count`, `paginate()` streams all pages through a generator |
+| 🚨 **Typed exceptions** | One marker interface, three exception types — catch narrowly or broadly; validation `details` flattened into readable messages |
+| 🔓 **Nothing sealed off** | `get`/`post`/`put`/`patch`/`delete` accept any path, so an endpoint not wrapped by a module is one call away |
+| 🛠 **Framework-agnostic** | Only hard dependency is `symfony/http-client`; the optional Symfony bundle adds semantic config and autowiring |
+| ✅ **Fully unit-tested** | 47 tests against `MockHttpClient` — no network required |
 
 ## Requirements
 
@@ -338,20 +363,59 @@ Beyond the sections above, the facade exposes fourteen further product modules, 
 
 ## Responses
 
-All calls return an immutable `ApiResponse`:
+All calls return an immutable `ApiResponse`. Scaleway wraps every list under a product-specific key — here is what actually comes back from `GET /instance/v1/zones/fr-par-1/servers`:
+
+```json
+{
+    "servers": [
+        {
+            "id": "d67f36bc-…",
+            "name": "web01",
+            "commercial_type": "DEV1-S",
+            "state": "running",
+            "public_ip": { "address": "203.0.113.10" },
+            "zone": "fr-par-1"
+        }
+    ],
+    "total_count": 1
+}
+```
+
+The response object gives you three levels of access — raw, keyed, and list-aware:
 
 ```php
 $response = $scaleway->instances()->servers();
 
 $response->success;              // bool
 $response->statusCode;           // int
-$response->data;                 // decoded JSON body (null on 204)
+$response->data;                 // the decoded JSON body above (null on 204)
 $response->data('servers');      // keyed access with optional default
 $response->errors;               // list<string>
 $response->raw;                  // complete decoded payload
+$response->headers;              // response headers (lowercased keys)
+
+$response->items();              // the wrapped list, envelope key auto-detected
+$response->items('servers');     // or with an explicit key
+$response->first();              // first item, null when the list is empty
+$response->totalCount();         // body total_count, falls back to X-Total-Count header
+$response->header('x-total-count');
 ```
 
-Scaleway wraps list results per product (`servers`, `instances`, `clusters`… plus `total_count`) — use `data('<key>')` to reach them.
+`items()` works across every module without configuration: it finds the single list key in the payload (`servers`, `clusters`, `secrets`, `records`…), so switching products never changes your consuming code.
+
+### Pagination
+
+List endpoints are paginated (`page` + `page_size`, or `per_page` for the Instance API; 100 items max per page). The client can walk all pages for you and stream items through a generator — memory-friendly even on large fleets:
+
+```php
+foreach ($scaleway->client()->paginate('/instance/v1/zones/fr-par-1/servers', itemsKey: 'servers', perPageParam: 'per_page') as $server) {
+    echo $server['name'], PHP_EOL;
+}
+
+foreach ($scaleway->client()->paginate('/k8s/v1/regions/fr-par/clusters') as $cluster) {
+    // regional products use the default page_size parameter, envelope key auto-detected
+}
+```
 
 ## Error Handling
 
