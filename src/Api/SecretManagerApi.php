@@ -48,14 +48,14 @@ final class SecretManagerApi extends AbstractApi
         return $this->get($this->path(sprintf('/secrets/%s/versions/%s/access', $secretId, $revision), $region));
     }
 
-    public function disableVersion(string $secretId, string $revision, ?string $region = null): ApiResponse
+    public function updateSecret(string $id, array $fields, ?string $region = null): ApiResponse
     {
-        return $this->post($this->path(sprintf('/secrets/%s/versions/%s/disable', $secretId, $revision), $region));
+        return $this->patch($this->path('/secrets/'.$id, $region), $fields);
     }
 
-    public function enableVersion(string $secretId, string $revision, ?string $region = null): ApiResponse
+    public function deleteVersion(string $secretId, string $revision, ?string $region = null): ApiResponse
     {
-        return $this->post($this->path(sprintf('/secrets/%s/versions/%s/enable', $secretId, $revision), $region));
+        return $this->delete($this->path(sprintf('/secrets/%s/versions/%s', $secretId, $revision), $region));
     }
 
     private function path(string $suffix, ?string $region): string

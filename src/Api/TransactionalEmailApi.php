@@ -8,7 +8,7 @@ use ChuckBartowski\ScalewaySdk\Response\ApiResponse;
 
 final class TransactionalEmailApi extends AbstractApi
 {
-    private const PRODUCT = 'tem';
+    private const PRODUCT = 'transactional-email';
     private const VERSION = 'v1alpha1';
 
     public function domains(array $query = [], ?string $region = null): ApiResponse
@@ -34,9 +34,14 @@ final class TransactionalEmailApi extends AbstractApi
         return $this->post($this->path(sprintf('/domains/%s/check', $id), $region));
     }
 
-    public function revokeDomain(string $id, ?string $region = null): ApiResponse
+    public function domainRecords(string $id, ?string $region = null): ApiResponse
     {
-        return $this->post($this->path(sprintf('/domains/%s/revoke', $id), $region));
+        return $this->get($this->path(sprintf('/domains/%s/records', $id), $region));
+    }
+
+    public function deleteDomain(string $id, ?string $region = null): ApiResponse
+    {
+        return $this->post($this->path(sprintf('/domains/%s/delete', $id), $region));
     }
 
     public function emails(array $query = [], ?string $region = null): ApiResponse
@@ -68,6 +73,66 @@ final class TransactionalEmailApi extends AbstractApi
     public function cancelEmail(string $id, ?string $region = null): ApiResponse
     {
         return $this->post($this->path(sprintf('/emails/%s/cancel', $id), $region));
+    }
+
+    public function webhooks(array $query = [], ?string $region = null): ApiResponse
+    {
+        return $this->get($this->path('/webhooks', $region), $query);
+    }
+
+    public function createWebhook(string $domainId, string $name, string $snsArn, array $eventTypes, ?string $region = null): ApiResponse
+    {
+        return $this->post($this->path('/webhooks', $region), $this->withProject([
+            'domain_id' => $domainId,
+            'name' => $name,
+            'sns_arn' => $snsArn,
+            'event_types' => $eventTypes,
+        ], 'project_id'));
+    }
+
+    public function updateWebhook(string $id, array $fields, ?string $region = null): ApiResponse
+    {
+        return $this->patch($this->path('/webhooks/'.$id, $region), $fields);
+    }
+
+    public function deleteWebhook(string $id, ?string $region = null): ApiResponse
+    {
+        return $this->delete($this->path('/webhooks/'.$id, $region));
+    }
+
+    public function webhookEvents(string $id, array $query = [], ?string $region = null): ApiResponse
+    {
+        return $this->get($this->path(sprintf('/webhooks/%s/events', $id), $region), $query);
+    }
+
+    public function blocklists(array $query = [], ?string $region = null): ApiResponse
+    {
+        return $this->get($this->path('/blocklists', $region), $query);
+    }
+
+    public function createBlocklist(string $domainId, string $email, string $type, ?string $reason = null, ?string $region = null): ApiResponse
+    {
+        return $this->post($this->path('/blocklists', $region), array_filter([
+            'domain_id' => $domainId,
+            'email' => $email,
+            'type' => $type,
+            'reason' => $reason,
+        ]));
+    }
+
+    public function deleteBlocklist(string $id, ?string $region = null): ApiResponse
+    {
+        return $this->delete($this->path('/blocklists/'.$id, $region));
+    }
+
+    public function projectSettings(?string $region = null): ApiResponse
+    {
+        return $this->get($this->path('/project-settings', $region));
+    }
+
+    public function updateProjectSettings(array $fields, ?string $region = null): ApiResponse
+    {
+        return $this->patch($this->path('/project-settings', $region), $fields);
     }
 
     private function path(string $suffix, ?string $region): string

@@ -8,8 +8,7 @@ use ChuckBartowski\ScalewaySdk\Response\ApiResponse;
 
 final class BlockStorageApi extends AbstractApi
 {
-    private const PRODUCT = 'block';
-    private const VERSION = 'v1alpha1';
+    private const BASE = '/block/v1/zone/%s%s';
 
     public function volumes(array $query = [], ?string $zone = null): ApiResponse
     {
@@ -48,6 +47,11 @@ final class BlockStorageApi extends AbstractApi
         return $this->delete($this->path('/volumes/'.$id, $zone));
     }
 
+    public function volumeTypes(?string $zone = null): ApiResponse
+    {
+        return $this->get($this->path('/volume-types', $zone));
+    }
+
     public function snapshots(array $query = [], ?string $zone = null): ApiResponse
     {
         return $this->get($this->path('/snapshots', $zone), $query);
@@ -61,6 +65,11 @@ final class BlockStorageApi extends AbstractApi
         ]), 'project_id'));
     }
 
+    public function updateSnapshot(string $id, array $fields, ?string $zone = null): ApiResponse
+    {
+        return $this->patch($this->path('/snapshots/'.$id, $zone), $fields);
+    }
+
     public function deleteSnapshot(string $id, ?string $zone = null): ApiResponse
     {
         return $this->delete($this->path('/snapshots/'.$id, $zone));
@@ -68,6 +77,6 @@ final class BlockStorageApi extends AbstractApi
 
     private function path(string $suffix, ?string $zone): string
     {
-        return $this->zonal(self::PRODUCT, self::VERSION, $suffix, $zone);
+        return sprintf(self::BASE, $zone ?? $this->client->getDefaultZone(), $suffix);
     }
 }

@@ -1,6 +1,6 @@
 # Scaleway SDK for PHP
 
-A modern, fully typed PHP SDK for the **Scaleway API** — Instances, Elastic Metal, Apple Silicon, Block Storage, VPC, Public Gateways, IPAM, Load Balancers, Managed Databases, Redis, Kubernetes Kapsule, Container Registry, Serverless Containers & Functions, Web Hosting, Transactional Email, Secret Manager, DNS & Domains, IAM, Account, and Billing.
+A modern, fully typed PHP SDK for the **Scaleway API** — 35 product modules covering compute (Instances, Elastic Metal, Apple Silicon, Scaling Groups), storage (Block, File), network (VPC, Public Gateways, IPAM, Load Balancers, Flexible IPs, Edge Services), databases (PostgreSQL/MySQL, Redis, MongoDB, Serverless SQL), Kubernetes, serverless (Containers, Functions, Jobs), messaging (NATS, Queues, Topics), hosting services (Web Hosting, Transactional Email, DNS & Domains), security (Secret Manager, Key Manager, IAM), AI (Managed Inference), observability (Cockpit, Audit Trail), IoT Hub, Marketplace, Account, and Billing.
 
 Framework-agnostic core — usable from any PHP project, script, or worker — with an optional bundle for first-class Symfony integration. Authenticated with IAM secret keys, zone/region aware, typed exceptions, and a comment-free, strictly typed codebase (PHP 8.2+, `declare(strict_types=1)` everywhere).
 
@@ -44,7 +44,7 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 
 ## Features
 
-- **Twenty-one product modules** behind one facade, covering the `api.scaleway.com` surface: compute (Instances, Elastic Metal, Apple Silicon), storage (Block Storage), network (VPC, Public Gateways, IPAM, Load Balancers), data (RDB, Redis, Registry), orchestration (Kubernetes), serverless (Containers, Functions), hosting services (Web Hosting, Transactional Email, DNS & Domains), security (Secret Manager, IAM), and account plumbing (Projects, Billing).
+- **Thirty-five product modules** behind one facade, covering the `api.scaleway.com` surface — every module's product slug and version verified against the official API documentation.
 - **Zone/region aware**: configure `default_zone` and `default_region` once; every method accepts an optional per-call override, and the SDK builds the correct `/zones/{zone}/` or `/regions/{region}/` path for each product.
 - **Project injection**: set `default_project_id` once and creation calls fill `project` / `project_id` automatically (explicit values always win).
 - **Framework-agnostic**: one plain facade (`Scaleway`) you can instantiate anywhere; the only hard dependency is `symfony/http-client`, a standalone component that works in any PHP project.
@@ -308,11 +308,33 @@ $scaleway->transactionalEmail()->sendEmail('noreply@example.com', ['user@example
 `$scaleway->iam()` — `iam/v1alpha1`: `apiKeys()`, `createApiKey()`, `deleteApiKey(accessKey)`, `sshKeys()`, `createSshKey(name, publicKey)`, `users()`, `applications()`, `createApplication(name)`, `policies()`, `createPolicy(name, rules)`.
 `$scaleway->billing()` — `billing/v2beta1`: `consumptions()`, `invoices()`, `downloadInvoice(id)`, `discounts()`.
 
+### Additional modules
+
+Beyond the sections above, the facade exposes fourteen further product modules, each mapped 1:1 to its documented API:
+
+| Facade method | Product / version | Highlights |
+|---|---|---|
+| `jobs()` | `serverless-jobs/v1alpha2` | job definitions CRUD, `run(definitionId)`, run listing, `stopRun` |
+| `mongodb()` | `mongodb/v1` | instances, upgrade, TLS `certificate()`, snapshots + restore, users, endpoints |
+| `serverlessSql()` | `serverless-sqldb/v1alpha1` | autoscaling Postgres databases (`cpu_min`/`cpu_max`), backups, restore, export |
+| `keyManager()` | `key-manager/v1alpha1` | keys CRUD, `encrypt`/`decrypt` (base64 handled), `generateDataKey`, `rotateKey`, `sign`/`verify`, `publicKey` |
+| `edgeServices()` | `edge-services/v1beta1` (global) | CDN pipelines, backend/cache/TLS/DNS stages, `createPurgeRequest` |
+| `iot()` | `iot/v1` | hubs and devices (enable/disable, certificates), routes, networks |
+| `autoscaling()` | `autoscaling/v1alpha1` (zonal) | instance groups, templates, scaling policies, group events |
+| `marketplace()` | `marketplace/v2` (global, no auth) | images, versions, local images per zone — feed `instances()->createServer()` |
+| `cockpit()` | `cockpit/v1` (global) | Grafana users, product dashboards, datasource sync |
+| `auditTrail()` | `audit-trail/v1alpha1` | resource/authentication/system events, export jobs |
+| `messaging()` | `mnq/v1beta1` | NATS accounts & credentials; Queues/Topics activation, info, credentials |
+| `fileStorage()` | `file/v1alpha1` | shared filesystems, attachments, types |
+| `inference()` | `inference/v1` | managed LLM deployments, model imports, node types, endpoints |
+| `flexibleIps()` | `flexible-ip/v1alpha1` (zonal) | Elastic Metal flexible IPs, `attachToServer`/`detachFromServer`, virtual MACs |
+
 ### Coverage notes
 
-- The Instances module also exposes the catalog (`serverTypes()`, `serverTypesAvailability()`) and `placementGroups()` / `createPlacementGroup(name, policyMode, policyType)`.
-- Intentionally out of scope: **Object Storage** (S3 protocol — use any S3 client), **Messaging & Queuing** (NATS/SNS/SQS protocols), **IoT Hub**, **Cockpit**, and **Dedibox**. Any of their `api.scaleway.com` endpoints remain reachable through the client's generic `get`/`post`/`patch`/`delete` methods.
-- Products still in `alpha` at Scaleway (`block/v1alpha1`, `tem/v1alpha1`, `apple-silicon/v1alpha1`) may change paths on GA — the modules encapsulate the version so an SDK update is a one-line change.
+- The Instances module also exposes the catalog (`serverTypes()`, `serverTypesAvailability()`) and `placementGroups()` / `createPlacementGroup(name, policyMode, policyType)`; Transactional Email includes webhooks, blocklists and project settings; Web Hosting includes `backups()` / `restoreBackup()`.
+- Two path quirks verified against the official docs: Block Storage uses `block/v1` with a **singular** `/zone/{zone}/` segment, and Transactional Email's slug is `transactional-email` (not `tem`).
+- Intentionally out of scope: **Object Storage** (S3 protocol — use any S3 client), the **data planes** of NATS/Queues/Topics (native NATS/SQS/SNS protocols — only their management API is wrapped), **Dedibox**, and beta data products (Kafka, Data Warehouse, Data Lab, OpenSearch, RabbitMQ). Any `api.scaleway.com` endpoint remains reachable through the client's generic `get`/`post`/`patch`/`delete` methods.
+- Products still in `alpha`/`beta` at Scaleway may change paths on GA — each module encapsulates its version so an SDK update is a one-line change.
 
 ## Responses
 

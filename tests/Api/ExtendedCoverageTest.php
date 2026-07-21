@@ -49,7 +49,7 @@ final class ExtendedCoverageTest extends TestCase
     public function testBlockStorageVolumeFromEmpty(): void
     {
         $http = new MockHttpClient(function (string $method, string $url, array $options): JsonMockResponse {
-            $this->assertStringEndsWith('/block/v1alpha1/zones/fr-par-1/volumes', $url);
+            $this->assertStringEndsWith('/block/v1/zone/fr-par-1/volumes', $url);
             $body = json_decode($options['body'], true);
             $this->assertSame(['size' => 50_000_000_000], $body['from_empty']);
             $this->assertSame(5000, $body['perf_iops']);
@@ -63,7 +63,7 @@ final class ExtendedCoverageTest extends TestCase
     public function testTransactionalEmailSendPayload(): void
     {
         $http = new MockHttpClient(function (string $method, string $url, array $options): JsonMockResponse {
-            $this->assertStringEndsWith('/tem/v1alpha1/regions/fr-par/emails', $url);
+            $this->assertStringEndsWith('/transactional-email/v1alpha1/regions/fr-par/emails', $url);
             $body = json_decode($options['body'], true);
             $this->assertSame(['email' => 'noreply@example.com'], $body['from']);
             $this->assertSame([['email' => 'user@example.com']], $body['to']);

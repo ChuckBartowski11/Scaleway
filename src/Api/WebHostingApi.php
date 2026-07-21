@@ -40,6 +40,21 @@ final class WebHostingApi extends AbstractApi
         return $this->delete($this->path('/hostings/'.$id, $region));
     }
 
+    public function backups(string $hostingId, array $query = [], ?string $region = null): ApiResponse
+    {
+        return $this->get($this->path(sprintf('/hostings/%s/backups', $hostingId), $region), $query);
+    }
+
+    public function backup(string $hostingId, string $backupId, ?string $region = null): ApiResponse
+    {
+        return $this->get($this->path(sprintf('/hostings/%s/backups/%s', $hostingId, $backupId), $region));
+    }
+
+    public function restoreBackup(string $hostingId, string $backupId, array $options = [], ?string $region = null): ApiResponse
+    {
+        return $this->post($this->path(sprintf('/hostings/%s/backups/%s/restore', $hostingId, $backupId), $region), $options);
+    }
+
     public function offers(array $query = [], ?string $region = null): ApiResponse
     {
         return $this->get($this->path('/offers', $region), $query);
