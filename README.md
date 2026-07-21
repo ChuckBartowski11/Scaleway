@@ -93,7 +93,7 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 | 🚨 **Typed exceptions** | One marker interface, three exception types — catch narrowly or broadly; validation `details` flattened into readable messages |
 | 🔓 **Nothing sealed off** | `get`/`post`/`put`/`patch`/`delete` accept any path, so an endpoint not wrapped by a module is one call away |
 | 🛠 **Framework-agnostic** | Only hard dependency is `symfony/http-client`; the optional Symfony bundle adds semantic config and autowiring |
-| ✅ **Fully unit-tested** | 47 tests against `MockHttpClient` — no network required |
+| ✅ **Fully unit-tested** | 53 tests against `MockHttpClient` — no network required |
 
 ## Requirements
 
