@@ -8,7 +8,7 @@
 
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D%208.2-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![Symfony](https://img.shields.io/badge/Symfony-6.4%20%7C%207.x-000000?logo=symfony&logoColor=white)](https://symfony.com/)
-[![Tests](https://img.shields.io/badge/tests-47%20passing-brightgreen?logo=github)](tests/)
+[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen?logo=github)](tests/)
 [![Coverage](https://img.shields.io/badge/products-35%20modules-blue)](#api-reference)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
@@ -89,7 +89,7 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 | 🧩 **35 product modules** | One facade covering the whole `api.scaleway.com` surface — every slug and version verified against the official API documentation |
 | 🌍 **Zone/region aware** | Configure `default_zone` / `default_region` once; every method accepts a per-call override and the SDK builds the right `/zones/…` or `/regions/…` path |
 | 🎯 **Project injection** | Set `default_project_id` once and creation calls fill `project` / `project_id` automatically (explicit values always win) |
-| 📦 **Smart responses** | `items()` auto-detects Scaleway's per-product envelope keys, `totalCount()` reads body or `X-Total-Count`, `paginate()` streams all pages through a generator |
+| 📦 **Smart responses** | `items()` auto-detects Scaleway's per-product envelope keys, `totalCount()` reads body or `X-Total-Count`, `paginate()` streams all pages, and 272 generated typed models hydrate via `as()`/`asList()` |
 | 🚨 **Typed exceptions** | One marker interface, three exception types — catch narrowly or broadly; validation `details` flattened into readable messages |
 | 🔓 **Nothing sealed off** | `get`/`post`/`put`/`patch`/`delete` accept any path, so an endpoint not wrapped by a module is one call away |
 | 🛠 **Framework-agnostic** | Only hard dependency is `symfony/http-client`; the optional Symfony bundle adds semantic config and autowiring |
