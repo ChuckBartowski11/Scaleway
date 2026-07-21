@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src=".github/banner.svg" alt="Scaleway SDK for PHP" width="100%">
+
 # ☁️ Scaleway SDK for PHP
 
 **A modern, fully typed PHP SDK for the entire Scaleway API — 35 product modules, one elegant facade.**

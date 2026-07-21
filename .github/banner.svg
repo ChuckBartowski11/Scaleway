@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280" role="img" aria-label="Scaleway SDK for PHP">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b0a50"/>
+      <stop offset="0.55" stop-color="#4f0599"/>
+      <stop offset="1" stop-color="#7d2ae8"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a06eff"/>
+      <stop offset="1" stop-color="#e0c9ff"/>
+    </linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.6" fill="#ffffff" opacity="0.09"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="280" rx="16" fill="url(#bg)"/>
+  <rect width="1200" height="280" rx="16" fill="url(#dots)"/>
+
+  <g opacity="0.16" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1020 70a34 34 0 0 1 8 67h-96a42 42 0 0 1-6-83 52 52 0 0 1 94 16z"/>
+    <rect x="940" y="168" width="150" height="26" rx="6"/>
+    <rect x="940" y="204" width="150" height="26" rx="6"/>
+    <circle cx="957" cy="181" r="4" fill="#ffffff" stroke="none"/>
+    <circle cx="957" cy="217" r="4" fill="#ffffff" stroke="none"/>
+  </g>
+
+  <g opacity="0.22" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="20" fill="#ffffff">
+    <text x="76" y="228">$scaleway-&gt;instances()-&gt;createServer(...);</text>
+  </g>
+
+  <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="76" y="118" font-size="64" font-weight="800" fill="#ffffff" letter-spacing="-1">Scaleway SDK</text>
+    <text x="76" y="166" font-size="30" font-weight="500" fill="#e0c9ff">for PHP — 35 products, one elegant facade</text>
+  </g>
+
+  <rect x="78" y="188" width="220" height="6" rx="3" fill="url(#accent)"/>
+
+  <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#ffffff" opacity="0.85" text-anchor="middle">
+    <g>
+      <rect x="700" y="52" width="110" height="30" rx="15" fill="#ffffff" opacity="0.12"/>
+      <text x="755" y="72">Instances</text>
+    </g>
+    <g>
+      <rect x="822" y="52" width="128" height="30" rx="15" fill="#ffffff" opacity="0.12"/>
+      <text x="886" y="72">Kubernetes</text>
+    </g>
+    <g>
+      <rect x="700" y="94" width="118" height="30" rx="15" fill="#ffffff" opacity="0.12"/>
+      <text x="759" y="114">Serverless</text>
+    </g>
+    <g>
+      <rect x="830" y="94" width="76" height="30" rx="15" fill="#ffffff" opacity="0.12"/>
+      <text x="868" y="114">DNS</text>
+    </g>
+  </g>
+</svg>
