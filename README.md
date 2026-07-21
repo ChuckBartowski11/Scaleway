@@ -52,11 +52,25 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
   - [Kubernetes Kapsule](#kubernetes-kapsule)
   - [Container Registry](#container-registry)
   - [Serverless Containers & Functions](#serverless-containers--functions)
+  - [Serverless Jobs](#serverless-jobs)
   - [Web Hosting](#web-hosting)
   - [Transactional Email](#transactional-email)
   - [Secret Manager](#secret-manager)
   - [DNS & Domains](#dns--domains)
   - [Account, IAM & Billing](#account-iam--billing)
+  - [Instance Scaling Groups](#instance-scaling-groups)
+  - [File Storage](#file-storage)
+  - [Elastic Metal Flexible IPs](#elastic-metal-flexible-ips)
+  - [Edge Services](#edge-services)
+  - [Managed MongoDB](#managed-mongodb)
+  - [Serverless SQL Databases](#serverless-sql-databases)
+  - [Key Manager](#key-manager)
+  - [Managed Inference](#managed-inference)
+  - [Messaging: NATS, Queues & Topics](#messaging-nats-queues--topics)
+  - [IoT Hub](#iot-hub)
+  - [Cockpit](#cockpit)
+  - [Audit Trail](#audit-trail)
+  - [Marketplace](#marketplace)
   - [Coverage notes](#coverage-notes)
 - [Responses](#responses)
 - [Error Handling](#error-handling)
@@ -333,26 +347,70 @@ $scaleway->transactionalEmail()->sendEmail('noreply@example.com', ['user@example
 `$scaleway->iam()` — `iam/v1alpha1`: `apiKeys()`, `createApiKey()`, `deleteApiKey(accessKey)`, `sshKeys()`, `createSshKey(name, publicKey)`, `users()`, `applications()`, `createApplication(name)`, `policies()`, `createPolicy(name, rules)`.
 `$scaleway->billing()` — `billing/v2beta1`: `consumptions()`, `invoices()`, `downloadInvoice(id)`, `discounts()`.
 
-### Additional modules
+### Serverless Jobs
 
-Beyond the sections above, the facade exposes fourteen further product modules, each mapped 1:1 to its documented API:
+`$scaleway->jobs()` — `serverless-jobs/v1alpha2` (regional): job definitions CRUD (`createDefinition(name, imageUri)` with cron, resources and env in options), `run(definitionId)`, `runs()` / `runDetails(runId)`, `stopRun(runId)`.
 
-| Facade method | Product / version | Highlights |
-|---|---|---|
-| `jobs()` | `serverless-jobs/v1alpha2` | job definitions CRUD, `run(definitionId)`, run listing, `stopRun` |
-| `mongodb()` | `mongodb/v1` | instances, upgrade, TLS `certificate()`, snapshots + restore, users, endpoints |
-| `serverlessSql()` | `serverless-sqldb/v1alpha1` | autoscaling Postgres databases (`cpu_min`/`cpu_max`), backups, restore, export |
-| `keyManager()` | `key-manager/v1alpha1` | keys CRUD, `encrypt`/`decrypt` (base64 handled), `generateDataKey`, `rotateKey`, `sign`/`verify`, `publicKey` |
-| `edgeServices()` | `edge-services/v1beta1` (global) | CDN pipelines, backend/cache/TLS/DNS stages, `createPurgeRequest` |
-| `iot()` | `iot/v1` | hubs and devices (enable/disable, certificates), routes, networks |
-| `autoscaling()` | `autoscaling/v1alpha1` (zonal) | instance groups, templates, scaling policies, group events |
-| `marketplace()` | `marketplace/v2` (global, no auth) | images, versions, local images per zone — feed `instances()->createServer()` |
-| `cockpit()` | `cockpit/v1` (global) | Grafana users, product dashboards, datasource sync |
-| `auditTrail()` | `audit-trail/v1alpha1` | resource/authentication/system events, export jobs |
-| `messaging()` | `mnq/v1beta1` | NATS accounts & credentials; Queues/Topics activation, info, credentials |
-| `fileStorage()` | `file/v1alpha1` | shared filesystems, attachments, types |
-| `inference()` | `inference/v1` | managed LLM deployments, model imports, node types, endpoints |
-| `flexibleIps()` | `flexible-ip/v1alpha1` (zonal) | Elastic Metal flexible IPs, `attachToServer`/`detachFromServer`, virtual MACs |
+```php
+$definition = $scaleway->jobs()->createDefinition('nightly-report', 'rg.fr-par.scw.cloud/ns/report:latest');
+$scaleway->jobs()->run($definition->data('id'));
+```
+
+### Instance Scaling Groups
+
+`$scaleway->autoscaling()` — `autoscaling/v1alpha1` (zonal): `instanceGroups()` CRUD with `capacity` (min/max size, cooldown), `templates()` (`createTemplate(name, commercialType)` with volumes and tags), `policies()` (`createPolicy(groupId, name, action, type)` — scale up/down on metric or schedule), `instanceGroupEvents(id)` for the scaling history.
+
+### File Storage
+
+`$scaleway->fileStorage()` — `file/v1alpha1` (regional): shared NFS-style filesystems attachable to Instances through Private Networks — `filesystems()` CRUD (`createFilesystem(name, sizeBytes)`), `attachments()`, `filesystemTypes()`.
+
+### Elastic Metal Flexible IPs
+
+`$scaleway->flexibleIps()` — `flexible-ip/v1alpha1` (zonal): failover IPs for Elastic Metal — `ips()` CRUD, `attachToServer(ipId, serverId)` / `detachFromServer(ipId)`, virtual MACs (`generateMac(ipId, macType)`, `deleteMac`) for virtualization setups.
+
+### Edge Services
+
+`$scaleway->edgeServices()` — `edge-services/v1beta1` (global): the CDN/WAF layer in front of Object Storage buckets and Load Balancers — `pipelines()` CRUD, per-pipeline stages (`createBackendStage`, `createCacheStage`, `createTlsStage`, `createDnsStage`), `plans()`, and cache purging (`createPurgeRequest(pipelineId, ?assets)` — omit `assets` to purge everything).
+
+### Managed MongoDB
+
+`$scaleway->mongodb()` — `mongodb/v1` (regional): `instances()` CRUD (`createInstance(name, version, nodeType, nodeNumber, userName, password, volume)`), `upgradeInstance`, TLS `certificate(instanceId)`, snapshots (`createSnapshot`, `restoreSnapshot`), `users()` management, `databases()`, public/private `createEndpoint` / `deleteEndpoint`, plus the `nodeTypes()` and `versions()` catalogs.
+
+### Serverless SQL Databases
+
+`$scaleway->serverlessSql()` — `serverless-sqldb/v1alpha1` (regional): autoscaling PostgreSQL billed to the query — `databases()` CRUD with `cpu_min`/`cpu_max` bounds, `restoreDatabase(id, backupId)`, `backups(databaseId)`, `exportBackup`.
+
+### Key Manager
+
+`$scaleway->keyManager()` — `key-manager/v1alpha1` (regional): Scaleway's KMS — `keys()` CRUD, `encrypt(keyId, plaintext)` / `decrypt(keyId, ciphertext)` (base64 handled for you), envelope encryption via `generateDataKey`, `rotateKey`, asymmetric `sign`/`verify`, `publicKey(id)`, `enableKey`/`disableKey`.
+
+```php
+$encrypted = $scaleway->keyManager()->encrypt('key-uuid', 'sensitive payload');
+```
+
+### Managed Inference
+
+`$scaleway->inference()` — `inference/v1` (regional): dedicated LLM deployments — `deployments()` CRUD (`createDeployment(name, modelId, nodeTypeName, endpoints)`), `models()` catalog + `importModel(source)` from Hugging Face or object storage, `nodeTypes()` (GPU offers), endpoint management with public or Private Network exposure.
+
+### Messaging: NATS, Queues & Topics
+
+`$scaleway->messaging()` — `mnq/v1beta1` (regional), the management plane for the three messaging products: NATS (`natsAccounts()`, `createNatsAccount`, `natsCredentials`, `createNatsCredentials`), Queues/SQS (`activateQueues()`, `queuesInfo()`, `createQueuesCredentials(name, permissions)`, `deactivateQueues()`), Topics/SNS (`activateTopics()`, `topicsInfo()`, `createTopicsCredentials`). The data planes speak native NATS/SQS/SNS protocols — use the matching client libraries with these credentials.
+
+### IoT Hub
+
+`$scaleway->iot()` — `iot/v1` (regional): MQTT hubs (`hubs()` CRUD, `enableHub`/`disableHub`, `hubMetrics`), devices (`createDevice(hubId, name)`, certificates via `deviceCertificate` / `renewDeviceCertificate`, enable/disable), message `routes()` (to databases, S3, functions…) and external `networks()`.
+
+### Cockpit
+
+`$scaleway->cockpit()` — `cockpit/v1` (global): the observability stack — Grafana users (`grafanaUsers()`, `createGrafanaUser(login, role)`, `deleteGrafanaUser`), prebuilt `productDashboards()`, and `syncDatasources()` to refresh data sources after enabling new products.
+
+### Audit Trail
+
+`$scaleway->auditTrail()` — `audit-trail/v1alpha1` (regional): who did what, when — `events()` (resource events, filterable by product/verb/date), `authenticationEvents()`, `systemEvents()`, `products()` (which products are integrated), and export jobs to Object Storage (`createExport`, `deleteExport`).
+
+### Marketplace
+
+`$scaleway->marketplace()` — `marketplace/v2` (global, no authentication required): the public image catalog — `images()`, `image(id)`, `imageVersions(imageId)`, `localImages()` (per-zone IDs to feed `instances()->createServer()`), `categories()`.
 
 ### Coverage notes
 
