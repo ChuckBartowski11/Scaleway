@@ -463,6 +463,36 @@ $response->header('x-total-count');
 
 `items()` works across every module without configuration: it finds the single list key in the payload (`servers`, `clusters`, `secrets`, `records`…), so switching products never changes your consuming code.
 
+### Typed models
+
+Every response object documented in Scaleway's official OpenAPI schemas has a matching PHP class — **272 readonly models across all 35 products**, generated from the schemas themselves (`tools/generate-models.py`), so field names and types match the API exactly. Hydrate them straight from any response:
+
+```php
+use ChuckBartowski\ScalewaySdk\Model\Instance\Server;
+use ChuckBartowski\ScalewaySdk\Model\Rdb\Instance;
+use ChuckBartowski\ScalewaySdk\Model\Domain\Record;
+
+$server = $scaleway->instances()->server($id)->as(Server::class);
+$server->name;             // ?string — snake_case fields become camelCase
+$server->commercialType;   // ?string 'DEV1-S'
+$server->publicIp;         // ?array  ['address' => '203.0.113.10', …]
+$server->protected;        // ?bool
+$server->raw;              // the complete original payload, nothing lost
+
+$db = $scaleway->databases()->instance($id)->as(Instance::class);
+$db->engine;               // 'PostgreSQL-15'
+$db->isHaCluster;          // ?bool
+
+foreach ($scaleway->dns()->records('example.com')->asList(Record::class) as $record) {
+    echo "{$record->name} {$record->type} {$record->data} (ttl {$record->ttl})", PHP_EOL;
+}
+```
+
+- `as(Model::class)` hydrates a single resource — it unwraps single-key envelopes (`{"server": {…}}`) and handles bare objects (RDB, MongoDB…) automatically; pass an explicit key as second argument when needed.
+- `asList(Model::class)` hydrates a wrapped collection, reusing the same envelope auto-detection as `items()`.
+- Hydration is **lossless and lenient**: unknown or new API fields stay available in `->raw`, and malformed values degrade to `null`/`[]` instead of throwing.
+- Models are plain data classes — using them is always optional, the array accessors above keep working.
+
 ### Pagination
 
 List endpoints are paginated (`page` + `page_size`, or `per_page` for the Instance API; 100 items max per page). The client can walk all pages for you and stream items through a generator — memory-friendly even on large fleets:

@@ -110,4 +110,36 @@ final readonly class ApiResponse
 
         return \is_array($values) ? ($values[0] ?? null) : null;
     }
+
+    public function as(string $model, ?string $key = null): ?object
+    {
+        $source = null !== $key ? $this->data($key) : $this->objectData();
+
+        return \is_array($source) && !array_is_list($source) ? $model::from($source) : null;
+    }
+
+    public function asList(string $model, ?string $key = null): array
+    {
+        return array_map(
+            static fn (array $item): object => $model::from($item),
+            array_values(array_filter($this->items($key), 'is_array')),
+        );
+    }
+
+    private function objectData(): ?array
+    {
+        if (!\is_array($this->data) || array_is_list($this->data)) {
+            return null;
+        }
+
+        if (1 === \count($this->data)) {
+            $only = $this->data[array_key_first($this->data)];
+
+            if (\is_array($only) && !array_is_list($only)) {
+                return $only;
+            }
+        }
+
+        return $this->data;
+    }
 }
