@@ -70,6 +70,19 @@ final class InstanceApi extends AbstractApi
         return $this->serverAction($id, 'backup', array_filter(['name' => $name]), $zone);
     }
 
+    public function waitForServerState(string $id, string|array $states = 'running', float $timeout = 300.0, float $interval = 2.0, ?string $zone = null): ApiResponse
+    {
+        return $this->waitUntil(
+            fn (): ApiResponse => $this->server($id, $zone),
+            static fn (ApiResponse $r): mixed => $r->data('server')['state'] ?? null,
+            (array) $states,
+            ['locked'],
+            $timeout,
+            $interval,
+            sprintf('instance server %s', $id),
+        );
+    }
+
     public function userData(string $serverId, string $key, ?string $zone = null): ApiResponse
     {
         return $this->get($this->path(sprintf('/servers/%s/user_data/%s', $serverId, rawurlencode($key)), $zone));

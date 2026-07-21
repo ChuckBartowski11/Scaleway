@@ -31,6 +31,19 @@ final class KubernetesApi extends AbstractApi
         ]), 'project_id'));
     }
 
+    public function waitForClusterReady(string $id, float $timeout = 900.0, float $interval = 5.0, ?string $region = null): ApiResponse
+    {
+        return $this->waitUntil(
+            fn (): ApiResponse => $this->cluster($id, $region),
+            static fn (ApiResponse $r): mixed => $r->data('status'),
+            ['ready'],
+            ['error'],
+            $timeout,
+            $interval,
+            sprintf('kubernetes cluster %s', $id),
+        );
+    }
+
     public function updateCluster(string $id, array $fields, ?string $region = null): ApiResponse
     {
         return $this->patch($this->path('/clusters/'.$id, $region), $fields);

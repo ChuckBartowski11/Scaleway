@@ -8,7 +8,7 @@
 
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D%208.2-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![Symfony](https://img.shields.io/badge/Symfony-6.4%20%7C%207.x-000000?logo=symfony&logoColor=white)](https://symfony.com/)
-[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen?logo=github)](tests/)
+[![Tests](https://img.shields.io/badge/tests-62%20passing-brightgreen?logo=github)](tests/)
 [![Coverage](https://img.shields.io/badge/products-35%20modules-blue)](#api-reference)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
@@ -90,10 +90,10 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 | 🌍 **Zone/region aware** | Configure `default_zone` / `default_region` once; every method accepts a per-call override and the SDK builds the right `/zones/…` or `/regions/…` path |
 | 🎯 **Project injection** | Set `default_project_id` once and creation calls fill `project` / `project_id` automatically (explicit values always win) |
 | 📦 **Smart responses** | `items()` auto-detects Scaleway's per-product envelope keys, `totalCount()` reads body or `X-Total-Count`, `paginate()` streams all pages, and 272 generated typed models hydrate via `as()`/`asList()` |
-| 🚨 **Typed exceptions** | One marker interface, three exception types — catch narrowly or broadly; validation `details` flattened into readable messages |
+| 🚨 **Production-grade errors** | 404/409/429/quota mapped to dedicated exceptions, opt-in automatic retries with backoff, and waiters for async resources |
 | 🔓 **Nothing sealed off** | `get`/`post`/`put`/`patch`/`delete` accept any path, so an endpoint not wrapped by a module is one call away |
 | 🛠 **Framework-agnostic** | Only hard dependency is `symfony/http-client`; the optional Symfony bundle adds semantic config and autowiring |
-| ✅ **Fully unit-tested** | 53 tests against `MockHttpClient` — no network required |
+| ✅ **Fully unit-tested** | 62 tests against `MockHttpClient` — no network required |
 
 ## Requirements
 
@@ -194,6 +194,8 @@ scaleway_sdk:
 | `default_zone` | string | `fr-par-1` | Zone for zoned products (Instances, Elastic Metal, LB) |
 | `default_region` | string | `fr-par` | Region for regional products (RDB, K8s, VPC, Registry…) |
 | `timeout` | float | `30.0` | Per-request timeout in seconds |
+| `retry_failed` | bool | `false` | Retry transient failures (429, 5xx) with exponential backoff |
+| `max_retries` | int | `3` | Maximum retry attempts when `retry_failed` is enabled |
 
 The `Scaleway` facade is then autowirable in controllers, services, commands, and message handlers. The bundle reuses your application's `http_client` service when available and falls back to a native client otherwise.
 
@@ -514,8 +516,60 @@ All SDK exceptions implement `ScalewaySdkExceptionInterface`, so a single catch 
 | Exception | Thrown when | Extras |
 |---|---|---|
 | `ApiException` | The API answered but reported a failure (module methods validate automatically) | `getErrors()`, `getStatusCode()`, `getRaw()` |
+| ↳ `ResourceNotFoundException` | HTTP 404 — the resource does not exist (anymore) | |
+| ↳ `ConflictException` | HTTP 409 — the resource is in a conflicting state (still attached, still in use…) | |
+| ↳ `RateLimitException` | HTTP 429 — you are being throttled | `getRetryAfter(): ?int` (seconds, from the `Retry-After` header) |
+| ↳ `QuotaExceededException` | The API reports the `quotas_exceeded` error type | |
 | `AuthenticationException` | The secret key is missing or the API answered HTTP 401 | thrown *before* any request when the key is empty |
 | `TransportException` | Network error, TLS failure, timeout, or a non-JSON response body | wraps the underlying `symfony/http-client` exception |
+
+The four subclasses extend `ApiException`, so existing `catch (ApiException $e)` blocks keep working — narrow only where the distinction matters:
+
+```php
+try {
+    $scaleway->instances()->server($id);
+} catch (ResourceNotFoundException) {
+    $this->markAsDeleted($id);
+} catch (RateLimitException $e) {
+    $this->requeue($id, delaySeconds: $e->getRetryAfter() ?? 30);
+}
+```
+
+### Automatic retries
+
+Transient failures (429, 5xx, network hiccups) can be retried automatically with exponential backoff, powered by Symfony's `RetryableHttpClient`:
+
+```php
+$client = new ScalewayClient('key', retryFailed: true, maxRetries: 3);
+```
+
+```yaml
+scaleway_sdk:
+    retry_failed: true
+    max_retries: 3
+```
+
+### Waiters
+
+Most Scaleway resources provision asynchronously — the create call returns immediately while the resource is still `provisioning`/`starting`. Waiters poll until the resource reaches a stable state, fail fast when it enters an error state, and throw on timeout:
+
+```php
+$scaleway->instances()->powerOn($id);
+$scaleway->instances()->waitForServerState($id, 'running');
+
+$db = $scaleway->databases()->createInstance('main-db', 'PostgreSQL-15', 'db-dev-s', 'admin', $pwd);
+$scaleway->databases()->waitForInstanceReady($db->data('id'), timeout: 900.0);
+```
+
+| Waiter | Success state | Fails fast on | Defaults |
+|---|---|---|---|
+| `instances()->waitForServerState($id, $states)` | the state(s) you pass (`running`, `stopped`…) | `locked` | 300 s, poll 2 s |
+| `databases()->waitForInstanceReady($id)` | `ready` | `error`, `disk_full` | 900 s, poll 5 s |
+| `kubernetes()->waitForClusterReady($id)` | `ready` | `error` | 900 s, poll 5 s |
+| `bareMetal()->waitForServerReady($id)` | `ready` | `error`, `unknown` | 3600 s, poll 10 s |
+| `loadBalancers()->waitForReady($id)` | `ready` | `error` | 600 s, poll 3 s |
+
+Every waiter returns the final `ApiResponse` (so you can chain `->as(Model::class)`) and accepts `timeout`, `interval`, and the usual zone/region override.
 
 Validation failures are readable out of the box — `message`, `type`, and each `details` entry are flattened into `getErrors()`:
 

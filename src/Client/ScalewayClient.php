@@ -8,6 +8,7 @@ use ChuckBartowski\ScalewaySdk\Exception\AuthenticationException;
 use ChuckBartowski\ScalewaySdk\Exception\TransportException;
 use ChuckBartowski\ScalewaySdk\Response\ApiResponse;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\RetryableHttpClient;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -24,9 +25,12 @@ final class ScalewayClient
         private readonly string $defaultZone = 'fr-par-1',
         private readonly string $defaultRegion = 'fr-par',
         private readonly float $timeout = 30.0,
+        bool $retryFailed = false,
+        int $maxRetries = 3,
         ?HttpClientInterface $httpClient = null,
     ) {
-        $this->httpClient = $httpClient ?? HttpClient::create();
+        $client = $httpClient ?? HttpClient::create();
+        $this->httpClient = $retryFailed ? new RetryableHttpClient($client, null, $maxRetries) : $client;
     }
 
     public function getDefaultProjectId(): string

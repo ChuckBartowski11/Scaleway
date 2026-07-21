@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ChuckBartowski\ScalewaySdk\Exception;
 
-final class ApiException extends \RuntimeException implements ScalewaySdkExceptionInterface
+class ApiException extends \RuntimeException implements ScalewaySdkExceptionInterface
 {
     public function __construct(
         private readonly array $errors,

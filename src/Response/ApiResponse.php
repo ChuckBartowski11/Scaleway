@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace ChuckBartowski\ScalewaySdk\Response;
 
 use ChuckBartowski\ScalewaySdk\Exception\ApiException;
+use ChuckBartowski\ScalewaySdk\Exception\ConflictException;
+use ChuckBartowski\ScalewaySdk\Exception\QuotaExceededException;
+use ChuckBartowski\ScalewaySdk\Exception\RateLimitException;
+use ChuckBartowski\ScalewaySdk\Exception\ResourceNotFoundException;
 
 final readonly class ApiResponse
 {
@@ -45,11 +49,21 @@ final readonly class ApiResponse
 
     public function ensureSuccess(): self
     {
-        if (!$this->success) {
-            throw new ApiException($this->errors ?: ['Scaleway API call failed'], $this->statusCode, $this->raw);
+        if ($this->success) {
+            return $this;
         }
 
-        return $this;
+        $errors = $this->errors ?: ['Scaleway API call failed'];
+        $type = \is_array($this->data) ? ($this->data['type'] ?? null) : null;
+        $retryAfter = $this->header('retry-after');
+
+        throw match (true) {
+            429 === $this->statusCode => new RateLimitException($errors, 429, $this->raw, null !== $retryAfter ? (int) $retryAfter : null),
+            404 === $this->statusCode => new ResourceNotFoundException($errors, 404, $this->raw),
+            409 === $this->statusCode => new ConflictException($errors, 409, $this->raw),
+            'quotas_exceeded' === $type => new QuotaExceededException($errors, $this->statusCode, $this->raw),
+            default => new ApiException($errors, $this->statusCode, $this->raw),
+        };
     }
 
     public function data(?string $key = null, mixed $default = null): mixed

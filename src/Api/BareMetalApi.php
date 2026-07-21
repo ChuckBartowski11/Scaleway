@@ -29,6 +29,19 @@ final class BareMetalApi extends AbstractApi
         ]), 'project_id'));
     }
 
+    public function waitForServerReady(string $id, float $timeout = 3600.0, float $interval = 10.0, ?string $zone = null): ApiResponse
+    {
+        return $this->waitUntil(
+            fn (): ApiResponse => $this->server($id, $zone),
+            static fn (ApiResponse $r): mixed => $r->data('status'),
+            ['ready'],
+            ['error', 'unknown'],
+            $timeout,
+            $interval,
+            sprintf('elastic metal server %s', $id),
+        );
+    }
+
     public function updateServer(string $id, array $fields, ?string $zone = null): ApiResponse
     {
         return $this->patch($this->path('/servers/'.$id, $zone), $fields);

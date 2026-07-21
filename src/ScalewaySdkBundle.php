@@ -25,6 +25,8 @@ final class ScalewaySdkBundle extends AbstractBundle
                 ->scalarNode('default_zone')->defaultValue('fr-par-1')->end()
                 ->scalarNode('default_region')->defaultValue('fr-par')->end()
                 ->floatNode('timeout')->defaultValue(30.0)->end()
+                ->booleanNode('retry_failed')->defaultFalse()->end()
+                ->integerNode('max_retries')->defaultValue(3)->end()
             ->end();
     }
 
@@ -39,6 +41,8 @@ final class ScalewaySdkBundle extends AbstractBundle
                 $config['default_zone'],
                 $config['default_region'],
                 $config['timeout'],
+                $config['retry_failed'],
+                $config['max_retries'],
                 service('http_client')->nullOnInvalid(),
             ]);
 

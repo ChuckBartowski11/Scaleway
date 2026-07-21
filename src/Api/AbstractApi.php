@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ChuckBartowski\ScalewaySdk\Api;
 
 use ChuckBartowski\ScalewaySdk\Client\ScalewayClient;
+use ChuckBartowski\ScalewaySdk\Exception\ApiException;
 use ChuckBartowski\ScalewaySdk\Response\ApiResponse;
 
 abstract class AbstractApi
@@ -55,5 +56,35 @@ abstract class AbstractApi
         }
 
         return $payload;
+    }
+
+    protected function waitUntil(callable $fetch, callable $state, array $success, array $failure, float $timeout, float $interval, string $subject): ApiResponse
+    {
+        $deadline = microtime(true) + $timeout;
+
+        while (true) {
+            $response = $fetch();
+            $current = $state($response);
+
+            if (\in_array($current, $success, true)) {
+                return $response;
+            }
+
+            if (\in_array($current, $failure, true)) {
+                throw new ApiException(
+                    [sprintf('%s entered state "%s" while waiting', $subject, (string) $current)],
+                    $response->statusCode,
+                    $response->raw,
+                );
+            }
+
+            if (microtime(true) >= $deadline) {
+                throw new ApiException(
+                    [sprintf('Timed out after %.0f seconds waiting for %s (last state: "%s")', $timeout, $subject, (string) $current)],
+                );
+            }
+
+            usleep((int) ($interval * 1_000_000));
+        }
     }
 }

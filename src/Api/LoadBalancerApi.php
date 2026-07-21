@@ -26,6 +26,19 @@ final class LoadBalancerApi extends AbstractApi
         return $this->post($this->path('/lbs', $zone), $this->withProject(array_merge($options, ['name' => $name]), 'project_id'));
     }
 
+    public function waitForReady(string $id, float $timeout = 600.0, float $interval = 3.0, ?string $zone = null): ApiResponse
+    {
+        return $this->waitUntil(
+            fn (): ApiResponse => $this->loadBalancer($id, $zone),
+            static fn (ApiResponse $r): mixed => $r->data('status'),
+            ['ready'],
+            ['error'],
+            $timeout,
+            $interval,
+            sprintf('load balancer %s', $id),
+        );
+    }
+
     public function deleteLoadBalancer(string $id, bool $releaseIp = false, ?string $zone = null): ApiResponse
     {
         return $this->delete($this->path('/lbs/'.$id, $zone), ['release_ip' => $releaseIp ? 'true' : 'false']);
