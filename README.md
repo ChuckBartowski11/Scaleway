@@ -160,7 +160,9 @@ new ScalewayClient(
     string $defaultZone = 'fr-par-1',
     string $defaultRegion = 'fr-par',
     float $timeout = 30.0,
-    ?HttpClientInterface $httpClient = null,  // inject your own (retries, proxy, mock…)
+    bool $retryFailed = false,                // retry 429/5xx with exponential backoff
+    int $maxRetries = 3,
+    ?HttpClientInterface $httpClient = null,  // inject your own (proxy, scoped, mock…)
 );
 ```
 
