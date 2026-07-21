@@ -10,6 +10,16 @@ final class DnsApi extends AbstractApi
 {
     private const BASE = '/domain/v2beta1';
 
+    public function domains(array $query = []): ApiResponse
+    {
+        return $this->get(self::BASE.'/domains', $query);
+    }
+
+    public function domain(string $name): ApiResponse
+    {
+        return $this->get(self::BASE.'/domains/'.rawurlencode($name));
+    }
+
     public function zones(array $query = []): ApiResponse
     {
         return $this->get(self::BASE.'/dns-zones', $query);

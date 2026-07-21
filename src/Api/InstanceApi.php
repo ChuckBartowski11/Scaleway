@@ -194,6 +194,35 @@ final class InstanceApi extends AbstractApi
         return $this->post($this->path(sprintf('/security_groups/%s/rules', $groupId), $zone), $rule);
     }
 
+    public function placementGroups(array $query = [], ?string $zone = null): ApiResponse
+    {
+        return $this->get($this->path('/placement_groups', $zone), $query);
+    }
+
+    public function createPlacementGroup(string $name, string $policyMode = 'optional', string $policyType = 'max_availability', ?string $zone = null): ApiResponse
+    {
+        return $this->post($this->path('/placement_groups', $zone), $this->withProject([
+            'name' => $name,
+            'policy_mode' => $policyMode,
+            'policy_type' => $policyType,
+        ]));
+    }
+
+    public function deletePlacementGroup(string $id, ?string $zone = null): ApiResponse
+    {
+        return $this->delete($this->path('/placement_groups/'.$id, $zone));
+    }
+
+    public function serverTypes(?string $zone = null): ApiResponse
+    {
+        return $this->get($this->path('/products/servers', $zone));
+    }
+
+    public function serverTypesAvailability(?string $zone = null): ApiResponse
+    {
+        return $this->get($this->path('/products/servers/availability', $zone));
+    }
+
     public function privateNics(string $serverId, ?string $zone = null): ApiResponse
     {
         return $this->get($this->path(sprintf('/servers/%s/private_nics', $serverId), $zone));

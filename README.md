@@ -1,6 +1,6 @@
 # Scaleway SDK for PHP
 
-A modern, fully typed PHP SDK for the **Scaleway API** — Instances, Elastic Metal, VPC, IPAM, Load Balancers, Managed Databases, Kubernetes Kapsule, Container Registry, DNS, IAM, Account, and Billing.
+A modern, fully typed PHP SDK for the **Scaleway API** — Instances, Elastic Metal, Apple Silicon, Block Storage, VPC, Public Gateways, IPAM, Load Balancers, Managed Databases, Redis, Kubernetes Kapsule, Container Registry, Serverless Containers & Functions, Web Hosting, Transactional Email, Secret Manager, DNS & Domains, IAM, Account, and Billing.
 
 Framework-agnostic core — usable from any PHP project, script, or worker — with an optional bundle for first-class Symfony integration. Authenticated with IAM secret keys, zone/region aware, typed exceptions, and a comment-free, strictly typed codebase (PHP 8.2+, `declare(strict_types=1)` everywhere).
 
@@ -18,13 +18,22 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 - [API Reference](#api-reference)
   - [Instances](#instances)
   - [Elastic Metal](#elastic-metal)
+  - [Apple Silicon](#apple-silicon)
+  - [Block Storage](#block-storage)
   - [VPC & IPAM](#vpc--ipam)
+  - [Public Gateways](#public-gateways)
   - [Load Balancers](#load-balancers)
   - [Managed Databases (RDB)](#managed-databases-rdb)
+  - [Managed Redis](#managed-redis)
   - [Kubernetes Kapsule](#kubernetes-kapsule)
   - [Container Registry](#container-registry)
-  - [DNS](#dns)
+  - [Serverless Containers & Functions](#serverless-containers--functions)
+  - [Web Hosting](#web-hosting)
+  - [Transactional Email](#transactional-email)
+  - [Secret Manager](#secret-manager)
+  - [DNS & Domains](#dns--domains)
   - [Account, IAM & Billing](#account-iam--billing)
+  - [Coverage notes](#coverage-notes)
 - [Responses](#responses)
 - [Error Handling](#error-handling)
 - [Testing](#testing)
@@ -35,7 +44,7 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 
 ## Features
 
-- **Twelve product modules** behind one facade, covering the core `api.scaleway.com` surface: compute (Instances, Elastic Metal), network (VPC, IPAM, Load Balancers), data (RDB, Registry), orchestration (Kubernetes), DNS, and account plumbing (Projects, IAM, Billing).
+- **Twenty-one product modules** behind one facade, covering the `api.scaleway.com` surface: compute (Instances, Elastic Metal, Apple Silicon), storage (Block Storage), network (VPC, Public Gateways, IPAM, Load Balancers), data (RDB, Redis, Registry), orchestration (Kubernetes), serverless (Containers, Functions), hosting services (Web Hosting, Transactional Email, DNS & Domains), security (Secret Manager, IAM), and account plumbing (Projects, Billing).
 - **Zone/region aware**: configure `default_zone` and `default_region` once; every method accepts an optional per-call override, and the SDK builds the correct `/zones/{zone}/` or `/regions/{region}/` path for each product.
 - **Project injection**: set `default_project_id` once and creation calls fill `project` / `project_id` automatically (explicit values always win).
 - **Framework-agnostic**: one plain facade (`Scaleway`) you can instantiate anywhere; the only hard dependency is `symfony/http-client`, a standalone component that works in any PHP project.
@@ -164,9 +173,13 @@ src/
 │   └── TransportException.php   Network / TLS / timeout / invalid JSON
 └── Api/
     ├── AbstractApi.php          zonal()/regional() path builders + project injection
-    ├── InstanceApi.php          BareMetalApi.php   VpcApi.php        IpamApi.php
-    ├── LoadBalancerApi.php      RdbApi.php         KubernetesApi.php RegistryApi.php
-    └── DnsApi.php               AccountApi.php     IamApi.php        BillingApi.php
+    ├── InstanceApi.php          BareMetalApi.php        AppleSiliconApi.php
+    ├── BlockStorageApi.php      VpcApi.php              PublicGatewayApi.php
+    ├── IpamApi.php              LoadBalancerApi.php     RdbApi.php
+    ├── RedisApi.php             KubernetesApi.php       RegistryApi.php
+    ├── ContainerApi.php         FunctionApi.php         WebHostingApi.php
+    ├── TransactionalEmailApi.php SecretManagerApi.php   DnsApi.php
+    └── AccountApi.php           IamApi.php              BillingApi.php
 ```
 
 Design decisions:
@@ -212,10 +225,26 @@ Power actions return a `task` — poll `server(id)` until the state settles. Vol
 
 `$scaleway->bareMetal()` — `baremetal/v1`: `servers()`, `createServer(offerId, name)`, `install(id, osId, hostname, sshKeyIds)`, `start`/`stop`/`reboot(id, bootType)`, `metrics(id)`, `offers()`, `oses()`, `updateIp(serverId, ipId, fields)` (reverse DNS).
 
+### Apple Silicon
+
+`$scaleway->appleSilicon()` — `apple-silicon/v1alpha1` (zoned, `fr-par-3`): `servers()`, `createServer(type, ?name)` (types: `M1-M`, `M2-M`, `M2-L`…), `deleteServer`, `rebootServer`, `reinstallServer`, `serverTypes()`. Mind the 24-hour minimum allocation period enforced by Apple's licensing.
+
+### Block Storage
+
+`$scaleway->blockStorage()` — `block/v1alpha1` (SBS, the low-latency block storage that replaces Instance `b_ssd` volumes): `volumes()`, `createVolume(name, sizeBytes, ?perfIops)` (5000 or 15000 IOPS), `createVolumeFromSnapshot(name, snapshotId)`, `updateVolume` (resize, IOPS change), `deleteVolume`, `snapshots()`, `createSnapshot(volumeId, name)`, `deleteSnapshot`.
+
 ### VPC & IPAM
 
 `$scaleway->vpc()` — `vpc/v2`: `vpcs()`, `createVpc(name)`, `privateNetworks()`, `createPrivateNetwork(name)`, `updatePrivateNetwork`, `deletePrivateNetwork`.
 `$scaleway->ipam()` — `ipam/v1`: `ips(query)` (filter by resource, private network…), `bookIp(source, options)`, `updateIp`, `releaseIp`.
+
+### Public Gateways
+
+`$scaleway->publicGateways()` — `vpc-gw/v2` (zoned): `gateways()`, `createGateway(type)` (`VPC-GW-S`…), `updateGateway`, `deleteGateway(id, deleteIp)`, `attachNetwork(gatewayId, privateNetworkId)` / `detachNetwork(gatewayNetworkId)`, and NAT: `patRules(query)`, `createPatRule(gatewayId, publicPort, privateIp, privatePort, protocol)`, `deletePatRule`.
+
+```php
+$scaleway->publicGateways()->createPatRule('gw-uuid', 2222, '192.168.1.10', 22, 'tcp');
+```
 
 ### Load Balancers
 
@@ -225,6 +254,10 @@ Power actions return a `task` — poll `server(id)` until the state settles. Vol
 
 `$scaleway->databases()` — `rdb/v1`: `instances()`, `createInstance(name, engine, nodeType, userName, password)` (engine e.g. `PostgreSQL-15`), `databases(instanceId)`, `createDatabase`, `users(instanceId)`, `createUser(instanceId, name, password, admin)`, `setPrivilege(instanceId, db, user, permission)` (`readonly`, `readwrite`, `all`, `custom`, `none`), `backups()`, `createBackup`, `restoreBackup`.
 
+### Managed Redis
+
+`$scaleway->redis()` — `redis/v1` (zoned): `clusters()`, `createCluster(name, version, nodeType, userName, password)` (node types `RED1-MICRO`…), `updateCluster`, `migrateCluster(id, fields)` (version or node-type migration), `deleteCluster`, ACLs (`addAclRules(clusterId, rules)`, `deleteAclRule(aclId)`).
+
 ### Kubernetes Kapsule
 
 `$scaleway->kubernetes()` — `k8s/v1`: `clusters()`, `createCluster(name, version, cni, pools)`, `upgradeCluster(id, version)`, `deleteCluster(id, withAdditionalResources)`, `kubeconfig(clusterId)`, pools (`createPool(clusterId, name, nodeType, size)`, `updatePool` for autoscaling), nodes (`nodes(clusterId)`, `replaceNode`, `rebootNode`), `versions()`.
@@ -233,9 +266,32 @@ Power actions return a `task` — poll `server(id)` until the state settles. Vol
 
 `$scaleway->registry()` — `registry/v1`: `namespaces()`, `createNamespace(name, isPublic)`, `deleteNamespace`, `images()`, `deleteImage`, `tags(imageId)`, `deleteTag`.
 
-### DNS
+### Serverless Containers & Functions
 
-`$scaleway->dns()` — `domain/v2beta1` (global, the zone is the domain name):
+`$scaleway->containers()` — `containers/v1beta1` (regional): `namespaces()`, `createNamespace(name)`, `containers()`, `createContainer(namespaceId, name, registryImage)`, `updateContainer`, `deployContainer(id)`, `deleteContainer`, custom `domains()` / `createDomain(containerId, hostname)`.
+`$scaleway->functions()` — `functions/v1beta1` (regional): same shape with `createFunction(namespaceId, name, runtime)`, `uploadUrl(functionId, contentLength)` (presigned zip upload), `deployFunction(id)`, `runtimes()`.
+
+The create → upload/configure → **deploy** cycle matters: configuration changes only go live after an explicit deploy.
+
+### Web Hosting
+
+`$scaleway->webHosting()` — `webhosting/v1` (regional, Scaleway's managed cPanel offering): `hostings()`, `createHosting(offerId, domain, email)`, `updateHosting`, `deleteHosting`, `offers()`, `controlPanels()`.
+
+### Transactional Email
+
+`$scaleway->transactionalEmail()` — `tem/v1alpha1` (regional): sender domains (`domains()`, `createDomain(domainName)`, `checkDomain(id)` for SPF/DKIM validation, `revokeDomain`) and sending (`sendEmail(fromEmail, to, subject, text, html)`, `emails(query)`, `email(id)`, `cancelEmail(id)`).
+
+```php
+$scaleway->transactionalEmail()->sendEmail('noreply@example.com', ['user@example.com'], 'Welcome', 'Hello!');
+```
+
+### Secret Manager
+
+`$scaleway->secrets()` — `secret-manager/v1beta1` (regional): `secrets()`, `createSecret(name)`, `deleteSecret`, versions (`versions(secretId)`, `createVersion(secretId, plaintext)` — base64 encoding handled for you, `accessVersion(secretId, revision)` defaulting to `latest`, `enableVersion` / `disableVersion`).
+
+### DNS & Domains
+
+`$scaleway->dns()` — `domain/v2beta1` (global, the zone is the domain name). Registrar side: `domains(query)` and `domain(name)` list the domain names attached to the account. Zone side:
 
 | Method | Notes |
 |---|---|
@@ -251,6 +307,12 @@ Power actions return a `task` — poll `server(id)` until the state settles. Vol
 `$scaleway->account()` — `account/v3`: `projects()`, `createProject(name)`, `updateProject`, `deleteProject`.
 `$scaleway->iam()` — `iam/v1alpha1`: `apiKeys()`, `createApiKey()`, `deleteApiKey(accessKey)`, `sshKeys()`, `createSshKey(name, publicKey)`, `users()`, `applications()`, `createApplication(name)`, `policies()`, `createPolicy(name, rules)`.
 `$scaleway->billing()` — `billing/v2beta1`: `consumptions()`, `invoices()`, `downloadInvoice(id)`, `discounts()`.
+
+### Coverage notes
+
+- The Instances module also exposes the catalog (`serverTypes()`, `serverTypesAvailability()`) and `placementGroups()` / `createPlacementGroup(name, policyMode, policyType)`.
+- Intentionally out of scope: **Object Storage** (S3 protocol — use any S3 client), **Messaging & Queuing** (NATS/SNS/SQS protocols), **IoT Hub**, **Cockpit**, and **Dedibox**. Any of their `api.scaleway.com` endpoints remain reachable through the client's generic `get`/`post`/`patch`/`delete` methods.
+- Products still in `alpha` at Scaleway (`block/v1alpha1`, `tem/v1alpha1`, `apple-silicon/v1alpha1`) may change paths on GA — the modules encapsulate the version so an SDK update is a one-line change.
 
 ## Responses
 
