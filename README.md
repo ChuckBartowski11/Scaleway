@@ -10,6 +10,7 @@
 [![Symfony](https://img.shields.io/badge/Symfony-6.4%20%7C%207.x-000000?logo=symfony&logoColor=white)](https://symfony.com/)
 [![Tests](https://img.shields.io/badge/tests-62%20passing-brightgreen?logo=github)](tests/)
 [![Coverage](https://img.shields.io/badge/products-35%20modules-blue)](#api-reference)
+[![Packagist](https://img.shields.io/packagist/v/chuckbartowski/scaleway-sdk?label=packagist&color=f28d1a)](https://packagist.org/packages/chuckbartowski/scaleway-sdk)
 [![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 *Instances · Elastic Metal · Kubernetes · Serverless · Databases · DNS · Load Balancers · Secret Manager · and everything in between*
@@ -105,29 +106,10 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 
 ## Installation
 
-If the package is available on [Packagist](https://packagist.org/packages/chuckbartowski/scaleway-sdk):
+The package is published on [Packagist](https://packagist.org/packages/chuckbartowski/scaleway-sdk):
 
 ```bash
 composer require chuckbartowski/scaleway-sdk
-```
-
-Otherwise, install it straight from the Git repository — add it as a VCS source in your project's `composer.json`:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/ChuckBartowski11/Scaleway"
-        }
-    ]
-}
-```
-
-Then require it:
-
-```bash
-composer require chuckbartowski/scaleway-sdk:^1.0
 ```
 
 ## Quick Start (plain PHP)
