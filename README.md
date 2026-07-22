@@ -79,6 +79,7 @@ Framework-agnostic core — usable from any PHP project, script, or worker — w
 - [Error Handling](#error-handling)
 - [Testing](#testing)
 - [Security Notes](#security-notes)
+- [WHMCS module](#whmcs-module)
 - [License](#license)
 
 ---
@@ -592,6 +593,19 @@ $scaleway = new Scaleway(new ScalewayClient('key', httpClient: $http));
 - Keep credentials in `.env.local` or your secret vault — never commit them.
 - Object Storage is intentionally out of scope: it speaks the S3 protocol on separate endpoints — use any S3 client with your Scaleway credentials.
 - `terminate` on an Instance deletes the server **and its local volumes**; `deleteCluster(withAdditionalResources: true)` deletes load balancers and volumes created by the cluster — gate destructive calls behind confirmation flows in your application.
+
+## WHMCS module
+
+A ready-to-use **WHMCS provisioning module** ships in [`whmcs/modules/servers/scalewaysdk/`](whmcs/modules/servers/scalewaysdk). It provisions a Scaleway Instance through this SDK — create + power on + wait for `running`, suspend (power off), unsuspend, terminate.
+
+**Install**
+
+1. `composer require chuckbartowski/scaleway-sdk` in your WHMCS root.
+2. Copy the `scalewaysdk` folder into `<whmcs>/modules/servers/`.
+3. Add a server with **Type: Scaleway Instance (SDK)** and your **IAM secret key** in the *Access Hash* field.
+4. Set the config options: **Commercial type** (`DEV1-S`…), **Image** (`ubuntu_jammy`…), **Zone** (`fr-par-1`…), **Project id**.
+
+The instance is named `whmcs-<serviceid>`, so the module locates it again on suspend/terminate without extra storage. Power actions use `instances()->waitForServerState()` to block until the instance settles.
 
 ## License
 
